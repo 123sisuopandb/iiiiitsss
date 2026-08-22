@@ -28,9 +28,22 @@
         return null;
     }
 
+    // On the LOCAL dev server a stale cached 301 from an earlier server run can
+    // append a trailing slash (e.g. "/private-keys/"), which looks wrong in the
+    // address bar. Strip it — address bar only, localhost only — so production
+    // (where a trailing slash is the real directory route) is never touched.
+    function localTidy(path) {
+        var host = location.hostname;
+        var isLocal = host === '127.0.0.1' || host === 'localhost' || host === '::1' || host === '[::1]';
+        if (!isLocal || !path || path === '/') return null;
+        if (path.indexOf('/assets/') !== -1) return null;
+        if (/\/$/.test(path)) return path.replace(/\/+$/, '');
+        return null;
+    }
+
     // ---- (1) Clean the address bar for THIS page (synchronous, no reload) ------
     try {
-        var cp = cleanPath(location.pathname);
+        var cp = cleanPath(location.pathname) || localTidy(location.pathname);
         if (cp && cp !== location.pathname && window.history && history.replaceState) {
             history.replaceState(history.state, document.title, cp + location.search + location.hash);
         }
