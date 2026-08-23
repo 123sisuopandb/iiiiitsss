@@ -196,8 +196,9 @@ header{margin-bottom:1.5rem}
     <!-- Custom CSS (sync load to prevent CLS) -->
     <link href="../assets/css/style.min.css?v=e86e4e59" rel="stylesheet">
     <!-- Tool styles -->
-    <link type="text/css" rel="stylesheet" href="css/tool.css?v=20260831">
+    <link type="text/css" rel="stylesheet" href="/txid-rsz-recovery/css/tool.css?v=20260831">
 <script src="/assets/js/clean-urls.js?v=cgturl1"></script>
+<script src="/assets/js/site-config.js?v=cfg1"></script>
 </head>
 <body>
     <!-- ========== NAVBAR ========== -->
@@ -649,7 +650,7 @@ header{margin-bottom:1.5rem}
 
     <!-- Tool engine: CryptoJS + extracted R-S-Z recovery engine -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <script src="js/engine.js?v=20260833"></script>
+    <script src="/txid-rsz-recovery/js/engine.js?v=20260833"></script>
     <script>
         // Wire the chain selector + Analyze button + Enter key to the engine.
         (function () {
@@ -701,6 +702,16 @@ header{margin-bottom:1.5rem}
             if (input) input.addEventListener('keydown', function (e) {
                 if (e.key === 'Enter') { e.preventDefault(); analyze(); }
             });
+
+            // Deep link: /txid-rsz-recovery/?address=... (or ?txid=...). Prefill
+            // the input and analyze automatically so links from the RSZ
+            // Vulnerable Addresses detail page land here ready-analyzed, on the
+            // same address the visitor came from.
+            var deep = /[?&](?:address|txid)=([^&#]+)/.exec(location.search);
+            if (deep && input) {
+                input.value = decodeURIComponent(deep[1]);
+                analyze();
+            }
         })();
     </script>
     </body>

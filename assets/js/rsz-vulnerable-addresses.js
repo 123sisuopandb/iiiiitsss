@@ -351,7 +351,7 @@
     var mempool = document.getElementById('rsz-explorer-mempool');
     if (mempool && valid) mempool.href = 'https://mempool.space/address/' + addr;
     var analyze = document.getElementById('rsz-analyze-link');
-    if (analyze && valid) analyze.href = '/address-analysis/?address=' + encodeURIComponent(addr);
+    if (analyze && valid) analyze.href = '/txid-rsz-recovery/?address=' + encodeURIComponent(addr);
 
     if (!valid) {
       var b = document.getElementById('current-balance');
