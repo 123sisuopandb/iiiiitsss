@@ -37,26 +37,14 @@
 }
 .tool-input-row .btn { white-space: nowrap; }
 
-/* ---- Chain selector + search bar — same look/behaviour as Address Analysis.
-        The base .chain-tabs / .chain-tab / .search-bar styling lives in the
-        global style.min.css; these rules add the selected-chain accent ring and
-        center the search bar, mirroring address-analysis.css (own #txr- ids). ---- */
+/* ---- Chain selector + search bar — same look/behaviour as the Public Key
+        Toolkit / Address Analysis. The selected-chain accent (a clean 2px border
+        in the chain's colour) and the hover tint both come from the global
+        .chain-tab styling in style.min.css; here we ONLY center the controls and
+        set the row spacing, so the active-tab border is identical to those sibling
+        tools (no extra inset ring / weight / dimming that made it look thicker). ---- */
 #txr-controls { max-width: 760px; margin-left: auto; margin-right: auto; }
 #txr-chain-tabs { margin-bottom: 1rem; }
-#txr-chain-tabs .chain-tab {
-    cursor: pointer;
-    opacity: .72;
-    transition: opacity .15s ease, box-shadow .15s ease, border-color .15s ease;
-}
-#txr-chain-tabs .chain-tab:hover { opacity: 1; }
-/* Selected chain: full opacity + an accent ring in the chain's own colour
-   (each tab sets --chain-color inline; falls back to the tool teal). */
-#txr-chain-tabs .chain-tab.active {
-    opacity: 1;
-    font-weight: 600;
-    border-color: var(--chain-color, #00b894) !important;
-    box-shadow: 0 0 0 2px var(--chain-color, #00b894) inset;
-}
 
 /* "Transactions to fetch" — free-entry number input (any count) */
 #txr-txlimit-wrap { color: var(--cgt-text-muted); }
@@ -261,3 +249,19 @@
     .rsz-row { grid-template-columns: 1fr; gap: .7rem; }
     .rsz-col-rsz, .rsz-col-addr { padding-top: .1rem; }
 }
+
+/* Balance-check spinner — the rotating wheel shown in the Balance / Received / TX
+   boxes (and the status line) while an explorer request is in flight, matching the
+   Public Key Toolkit / private-keys pages. Self-contained: own keyframes + explicit
+   tint so the global .fa-icon filters never recolour it. */
+.txr-spin {
+    display: inline-block;
+    vertical-align: -2px;
+    animation: txr-spin .8s linear infinite;
+    filter: invert(48%);                 /* black source SVG -> muted grey */
+}
+[data-bs-theme="dark"] .txr-spin { filter: invert(78%); }
+@keyframes txr-spin { to { transform: rotate(360deg); } }
+
+/* Funded balance amounts use the private-keys balance green (#22c55e). */
+.stat-value.has-balance { color: #22c55e !important; font-weight: 700; }

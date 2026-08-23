@@ -520,13 +520,31 @@
         return null;
     }
 
+    // Rotating balance-check spinner — the same wheel the Public Key Toolkit /
+    // private-keys pages show while an explorer request is in flight. Own class
+    // (.txr-spin, not .fa-icon) so the global icon-tint filters never recolour it;
+    // it is tinted + spun by tool.css.
+    function spinner(size) {
+        const n = size || 13;
+        return '<img src="../assets/svgs/solid/spinner.svg" class="txr-spin" width="' + n +
+            '" height="' + n + '" alt="loading">';
+    }
     function setStats(stats) {
         const b = document.getElementById('txr-stat-balance');
         const r = document.getElementById('txr-stat-received');
         const t = document.getElementById('txr-stat-tx');
-        if (b) b.textContent = stats ? formatBtc(stats.balance) : '0 BTC';
-        if (r) r.textContent = stats ? formatBtc(stats.received) : '0 BTC';
+        // Turn the amount green when the address holds (Balance) or has ever held
+        // (Received) coins — matching the private-keys balance colour (#22c55e).
+        if (b) { b.textContent = stats ? formatBtc(stats.balance) : '0 BTC'; b.classList.toggle('has-balance', !!(stats && stats.balance > 0)); }
+        if (r) { r.textContent = stats ? formatBtc(stats.received) : '0 BTC'; r.classList.toggle('has-balance', !!(stats && stats.received > 0)); }
         if (t) t.textContent = stats ? String(stats.tx) : '0';
+    }
+    // Show the spinner in the Balance / Received / TX boxes while their lookup runs.
+    function statLoading() {
+        ['txr-stat-balance', 'txr-stat-received', 'txr-stat-tx'].forEach(function (id) {
+            const el = document.getElementById(id);
+            if (el) { el.innerHTML = spinner(16); el.classList.remove('has-balance'); }
+        });
     }
 
     async function resolveInputToRSZ(input, want, onProgress) {
@@ -750,7 +768,7 @@
 
         const header = getOutputHeader(out.id);
         const setStatus = function (msg) {
-            out.innerHTML = header + '<div class="rsz-status">' + escapeHtml(msg) + '</div>';
+            out.innerHTML = header + '<div class="rsz-status">' + spinner(14) + ' ' + escapeHtml(msg) + '</div>';
         };
         const onProgress = function (p) {
             if (p.phase === 'list') {
@@ -777,6 +795,7 @@
                 mode = "address";
                 // Balance / Received / TX first (fast) — same box as Address Analysis.
                 setStatus('Fetching balance…');
+                statLoading();
                 try { setStats(await fetchAddressStats(input)); } catch (e) { setStats(null); }
                 rsz = await resolveInputToRSZ(input, want, onProgress);
             } else {

@@ -381,16 +381,61 @@
         } catch (e) { /* give up */ }
         return null;
     }
+    // Rotating balance-check spinner — the same wheel the private-keys pages show
+    // while an explorer request is in flight. Own class (.pkt-spin, not .fa-icon) so
+    // the global icon-tint filters never recolour it; it is tinted + spun by tool.css.
+    function spinner(size) {
+        const n = size || 13;
+        return '<img src="../assets/svgs/solid/spinner.svg" class="pkt-spin" width="' + n +
+            '" height="' + n + '" alt="loading">';
+    }
     function setStats(stats) {
         const b = document.getElementById('pkt-stat-balance');
         const r = document.getElementById('pkt-stat-received');
         const t = document.getElementById('pkt-stat-tx');
-        if (b) b.textContent = stats ? formatBtc(stats.balance) : '0 BTC';
-        if (r) r.textContent = stats ? formatBtc(stats.received) : '0 BTC';
+        // Turn the amount green when the address holds (Balance) or has ever held
+        // (Received) coins — matching the private-keys balance colour (#22c55e).
+        if (b) { b.textContent = stats ? formatBtc(stats.balance) : '0 BTC'; b.classList.toggle('has-balance', !!(stats && stats.balance > 0)); }
+        if (r) { r.textContent = stats ? formatBtc(stats.received) : '0 BTC'; r.classList.toggle('has-balance', !!(stats && stats.received > 0)); }
         if (t) t.textContent = stats ? String(stats.tx) : '0';
     }
+    // Show the spinner in the Balance / Received / TX boxes while their lookup runs.
+    function statLoading() {
+        ['pkt-stat-balance', 'pkt-stat-received', 'pkt-stat-tx'].forEach(function (id) {
+            const el = document.getElementById(id);
+            if (el) { el.innerHTML = spinner(16); el.classList.remove('has-balance'); }
+        });
+    }
 
-    // Fill the live balance slot under each derived address (Balance · Received · Tx).
+    // Format a satoshi amount exactly like the private-keys balance pills: a sub-0.01 BTC
+    // amount (< 1e6 sat) as a whole "N sat", otherwise BTC with trailing zeros trimmed.
+    // The ₿ / ↓ pill icons imply the unit, so there is no "BTC" suffix here.
+    function fmtAmt(sats) {
+        const n = Number(sats || 0);
+        if (n > 0 && n < 1e6) return n + ' sat';
+        const s = (n / 1e8).toFixed(8).replace(/\.?0+$/, '');
+        return s || '0';
+    }
+    // The per-address balance readout — identical markup to the private-keys pages:
+    // a grey ₿ balance pill (orange when it holds coins), a blue ⇄ tx-count pill, and a
+    // green ↓ received pill. Styled entirely by the site-wide style.min.css (.balance-info,
+    // .bal/.tx/.recv + their .has-* funded states), which this page already loads.
+    function balancePills(s) {
+        const bal = Number(s.balance || 0), recv = Number(s.received || 0), tx = Number(s.tx || 0);
+        return '<span class="balance-info">' +
+            '<span class="bal' + (bal > 0 ? ' has-balance' : '') + '">' +
+            '<img src="../assets/svgs/solid/bitcoin-sign.svg" class="fa-icon bal-icon" width="12" height="12" alt="">' +
+            escapeHtml(fmtAmt(bal)) + '</span>' +
+            '<span class="tx' + (tx > 0 ? ' has-tx' : '') + '">' +
+            '<img src="../assets/svgs/solid/arrow-right-arrow-left.svg" class="fa-icon" width="10" height="10" alt="">' +
+            tx + '</span>' +
+            '<span class="recv' + (recv > 0 ? ' has-recv' : '') + '">' +
+            '<img src="../assets/svgs/solid/arrow-down.svg" class="fa-icon" width="10" height="10" alt="">' +
+            escapeHtml(fmtAmt(recv)) + '</span>' +
+            '</span>';
+    }
+
+    // Fill the live balance slot under each derived address (Balance · Tx · Received).
     // Funds may sit on any address format, so every one is looked up independently.
     async function fillAddressBalances(root) {
         if (!root) return;
@@ -400,15 +445,15 @@
             try {
                 const s = await fetchAddressStats(address);
                 if (s) {
-                    el.innerHTML = 'Balance <b>' + escapeHtml(formatBtc(s.balance)) +
-                        '</b> &middot; Received <b>' + escapeHtml(formatBtc(s.received)) +
-                        '</b> &middot; <b>' + Number(s.tx || 0) + '</b> tx';
-                    if (s.received > 0) el.classList.add('pkt-has-funds');
+                    el.innerHTML = balancePills(s);
+                    if (s.received > 0 || s.balance > 0) el.classList.add('pkt-has-funds');
                 } else {
-                    el.textContent = 'Balance unavailable'; el.classList.add('pkt-bal-na');
+                    el.innerHTML = '<span class="balance-info"><span class="status">Balance unavailable</span></span>';
+                    el.classList.add('pkt-bal-na');
                 }
             } catch (e) {
-                el.textContent = 'Balance unavailable'; el.classList.add('pkt-bal-na');
+                el.innerHTML = '<span class="balance-info"><span class="status">Balance unavailable</span></span>';
+                el.classList.add('pkt-bal-na');
             }
         }));
     }
@@ -432,7 +477,8 @@
     // Address line plus a slot that fillAddressBalances() populates with its live stats.
     function addrRow(label, address) {
         return line(label, address, true) +
-            '<div class="pkt-addr-stats" data-bal="' + escapeHtml(address) + '">Checking balance…</div>';
+            '<div class="pkt-addr-stats" data-bal="' + escapeHtml(address) + '">' +
+            spinner(12) + ' Checking balance…</div>';
     }
     function fallbackCopy(text, done) {
         try {
@@ -488,20 +534,6 @@
         return html;
     }
 
-    function renderHash160(h160) {
-        const a = addressesFromHash160(h160);
-        let html = '<div class="rsz-summary"><span class="rsz-chip">HASH160 input</span></div>';
-        html += '<div class="rsz-thead rsz-full"><div><img src="../assets/svgs/solid/hashtag.svg" width="13" height="13" alt=""> HASH160 &amp; Addresses</div></div>';
-        html += '<div class="rsz-row rsz-full"><div class="rsz-col">';
-        html += line('HASH160', h160);
-        html += addrRow('P2PKH (1…)', a.p2pkh);
-        html += addrRow('P2SH-P2WPKH (3…)', a.p2sh);
-        html += addrRow('Native SegWit (bc1…)', a.bech32);
-        html += '</div></div>';
-        html += '<div class="rsz-status">The public key can only be revealed by a spending transaction — enter the address and enable recovery to fetch it.</div>';
-        return html;
-    }
-
     // ---- Address decoding ------------------------------------------------
     // -> { type, h160, program, addr }. h160 set for P2PKH / P2SH / P2WPKH.
     function decodeAddress(addr) {
@@ -527,7 +559,7 @@
         if (!raw) return;
 
         const header = getOutputHeader();
-        const status = (msg) => { out.innerHTML = header + '<div class="rsz-status">' + escapeHtml(msg) + '</div>'; };
+        const status = (msg) => { out.innerHTML = header + '<div class="rsz-status">' + spinner(14) + ' ' + escapeHtml(msg) + '</div>'; };
         const scan = document.getElementById('pkt-scan');
         const limitEl = document.getElementById('pkt-tx-limit');
         let want = limitEl ? parseInt(limitEl.value, 10) : 50;
@@ -545,10 +577,49 @@
                 return;
             }
 
-            // 2) HASH160
+            // 2) HASH160 (RIPEMD160 of a public key). Treat it exactly like an
+            //    address: derive its addresses, look up the balance, and — when
+            //    recovery is enabled — scan the P2PKH address's spends for the
+            //    public key it revealed on-chain (a hash can't be reversed to a
+            //    key by math alone; the chain is the only source).
             if (/^[0-9a-f]{40}$/.test(hex)) {
-                setStats(null);
-                out.innerHTML = header + renderHash160(hex);
+                const a = addressesFromHash160(hex);
+                // Top summary tracks the canonical P2PKH (1…) address for this hash.
+                status('Fetching balance…');
+                statLoading();
+                try { setStats(await fetchAddressStats(a.p2pkh)); } catch (e) { setStats(null); }
+
+                let html = '<div class="rsz-summary"><span class="rsz-chip">HASH160 input</span></div>';
+                html += '<div class="rsz-thead rsz-full"><div><img src="../assets/svgs/solid/hashtag.svg" width="13" height="13" alt=""> HASH160 &amp; Addresses</div></div>';
+                html += '<div class="rsz-row rsz-full"><div class="rsz-col">';
+                html += line('HASH160', hex);
+                html += addrRow('P2PKH (1…)', a.p2pkh);
+                html += addrRow('P2SH-P2WPKH (3…)', a.p2sh);
+                html += addrRow('Native SegWit (bc1…)', a.bech32);
+                html += '</div></div>';
+
+                if (scan && scan.checked) {
+                    out.innerHTML = header + html +
+                        '<div class="rsz-status">' + spinner(14) + ' Scanning transactions to recover the public key…</div>';
+                    const onProgress = (p) => {
+                        out.innerHTML = header + html + '<div class="rsz-status">' + spinner(14) + ' ' +
+                            (p.scanned != null
+                                ? 'Scanning transactions… ' + p.scanned + ' / ' + p.target
+                                : 'Listing transactions… ' + p.listed + (p.target ? ' / ' + p.target : '')) +
+                            '</div>';
+                    };
+                    let pub = null;
+                    try { pub = await recoverPubkeyForAddress(a.p2pkh, hex, want, onProgress); }
+                    catch (e) { out.innerHTML = header + html + '<div class="rsz-error">' + escapeHtml(e.message) + '</div>'; return; }
+                    if (pub) {
+                        html += renderPubkey(parsePubkey(pub), 'Public key recovered from an on-chain signature');
+                    } else {
+                        html += '<div class="rsz-status rsz-empty">No public key found — this HASH160’s address has not spent funds yet, so it never revealed its key on-chain.</div>';
+                    }
+                } else {
+                    html += '<div class="rsz-status">Enable “Recover public key from an address” to scan this HASH160’s transactions for the key revealed on-chain.</div>';
+                }
+                out.innerHTML = header + html;
                 fillAddressBalances(out);
                 return;
             }
@@ -561,6 +632,7 @@
 
             // Balance / Received / TX for the address (same box as the R·S·Z tool).
             status('Fetching balance…');
+            statLoading();
             try { setStats(await fetchAddressStats(raw)); } catch (e) { setStats(null); }
 
             let html = '<div class="rsz-summary"><span class="rsz-chip">' + escapeHtml(dec.type) + '</span></div>';
@@ -574,9 +646,9 @@
             const canRecover = dec.h160 && dec.h160.length === 40;
             if (scan && scan.checked && canRecover) {
                 out.innerHTML = header + html +
-                    '<div class="rsz-status">Scanning transactions to recover the public key…</div>';
+                    '<div class="rsz-status">' + spinner(14) + ' Scanning transactions to recover the public key…</div>';
                 const onProgress = (p) => {
-                    out.innerHTML = header + html + '<div class="rsz-status">' +
+                    out.innerHTML = header + html + '<div class="rsz-status">' + spinner(14) + ' ' +
                         (p.scanned != null
                             ? 'Scanning transactions… ' + p.scanned + ' / ' + p.target
                             : 'Listing transactions… ' + p.listed + (p.target ? ' / ' + p.target : '')) +

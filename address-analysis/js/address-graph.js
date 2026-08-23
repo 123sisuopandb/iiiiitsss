@@ -785,20 +785,49 @@
 
   // Populate the three summary stat cards. Labels adapt to what was analysed:
   // an address shows Balance / Received / TX; a transaction shows Out / In / Fee.
+  // Spinner shown in the Balance / Received / TX boxes while a lookup is in flight —
+  // the same rotating wheel the Public Key Toolkit / private-keys pages use. Own
+  // class (.aa-spin) so the global icon-tint filters never recolour it; the tool
+  // CSS tints + spins it.
+  function spinner(size) {
+    var n = size || 13;
+    return '<img src="../assets/svgs/solid/spinner.svg" class="aa-spin" width="' + n +
+      '" height="' + n + '" alt="loading">';
+  }
+  // Drop a spinner into the three summary boxes for the fetch/waiting window.
+  function statLoading() {
+    ["aa-stat-v1", "aa-stat-v2", "aa-stat-v3"].forEach(function (id) {
+      var el = $(id);
+      if (el) { el.innerHTML = spinner(16); el.classList.remove("has-balance"); }
+    });
+  }
+  function toggleFunded(id, on) { var v = $(id); if (v) v.classList.toggle("has-balance", !!on); }
+
   function setStat(labelId, valueId, label, value) {
     var l = $(labelId), v = $(valueId);
     if (l) l.textContent = label;
-    if (v) v.textContent = value;
+    if (v) { v.textContent = value; v.classList.remove("has-balance"); }
   }
   function statsForAddress(stats) {
     setStat("aa-stat-l1", "aa-stat-v1", "Balance",  formatBTC(stats.balance));
     setStat("aa-stat-l2", "aa-stat-v2", "Received", formatBTC(stats.funded));
     setStat("aa-stat-l3", "aa-stat-v3", "TX",       String(stats.txCount));
+    // Turn the amount green when the address holds (Balance) or has ever held
+    // (Received) coins — matching the private-keys balance green (#22c55e).
+    toggleFunded("aa-stat-v1", Number(stats.balance) > 0);
+    toggleFunded("aa-stat-v2", Number(stats.funded) > 0);
   }
   function statsForTx(root) {
     setStat("aa-stat-l1", "aa-stat-v1", "Total Out", formatBTC(root.sumOut));
     setStat("aa-stat-l2", "aa-stat-v2", "Total In",  formatBTC(root.sumIn));
     setStat("aa-stat-l3", "aa-stat-v3", "Fee",       root.fee != null ? formatBTC(root.fee) : "—");
+  }
+  // Clear the summary boxes back to zero (used on error paths so the loading
+  // spinner never keeps spinning if a lookup fails).
+  function statsReset() {
+    setStat("aa-stat-l1", "aa-stat-v1", "Balance",  formatBTC(0));
+    setStat("aa-stat-l2", "aa-stat-v2", "Received", formatBTC(0));
+    setStat("aa-stat-l3", "aa-stat-v3", "TX",       "0");
   }
 
   // Route the single input box for the active chain: a 64-hex TXID (bitcoin only)
@@ -822,6 +851,7 @@
     if (btn) btn.disabled = true;
     var done = function () { if (btn) btn.disabled = false; };
     setStatus("Fetching transactions for " + shorten(addr) + " …", "loading");
+    statLoading();
 
     // ---- Account model: balance via BalanceChecker (reuse) + txs via adapter ----
     if (activeChain && activeChain.model === "account") {
@@ -855,6 +885,7 @@
           try { history.replaceState(null, "", "?address=" + encodeURIComponent(addr)); } catch (e) {}
         })
         .catch(function () {
+          statsReset();
           setStatus("Couldn't load data for that " + activeChain.name + " address. Check it and try again.", "error");
         })
         .then(done);
@@ -883,6 +914,7 @@
         return getStats(activeChain, addr).then(function (stats) {
           var hasData = stats && (Number(stats.balance) > 0 || typeof stats.txCount === "number");
           if (!hasData) {
+            statsReset();
             setStatus(/rate/.test(e && e.message)
               ? "Explorers are rate-limiting — wait a few seconds and press Analyze again."
               : "Couldn't reach the block explorer for " + activeChain.name + ". Check your connection and try again.", "error");
@@ -907,6 +939,7 @@
     var btn = $("analyze-btn");
     if (btn) btn.disabled = true;
     setStatus("Fetching transaction " + shorten(txid) + " …", "loading");
+    statLoading();
 
     fetchTx(txid)
       .then(function (tx) {
@@ -923,6 +956,7 @@
         try { history.replaceState(null, "", "?txid=" + encodeURIComponent(txid)); } catch (e) {}
       })
       .catch(function (e) {
+        statsReset();
         setStatus(/rate/.test(e && e.message)
           ? "Both explorers are rate-limiting — wait a few seconds and press Analyze again."
           : "Couldn't find that transaction. Check the TXID and try again.", "error");

@@ -260,22 +260,12 @@ body { overflow: auto !important; }
 #panel-body { overflow: visible !important; height: auto !important; max-height: none !important; }
 #panel-open-tool { background: var(--aa-accent); }
 
-/* ---- Chain selector: every coin is analysable; the active tab is highlighted ---- */
+/* ---- Chain selector: every coin is analysable. The selected-chain accent (a
+        clean 2px border in the chain's colour) and the hover tint both come from
+        the global .chain-tab styling in style.min.css — we ONLY set the row spacing
+        here, so the active-tab border matches the Public Key Toolkit / TXID→R,S,Z
+        tools exactly (no extra inset ring / weight / dimming that looked thicker). ---- */
 #aa-chain-tabs { margin-bottom: 1rem; }
-#aa-chain-tabs .chain-tab {
-  cursor: pointer;
-  opacity: .72;
-  transition: opacity .15s ease, box-shadow .15s ease, border-color .15s ease;
-}
-#aa-chain-tabs .chain-tab:hover { opacity: 1; }
-/* The selected chain: full opacity + an accent ring in the chain's own colour
-   (each tab sets --chain-color inline; falls back to the tool accent). */
-#aa-chain-tabs .chain-tab.active {
-  opacity: 1;
-  font-weight: 600;
-  border-color: var(--chain-color, var(--aa-accent)) !important;
-  box-shadow: 0 0 0 2px var(--chain-color, var(--aa-accent)) inset;
-}
 
 /* ---- Detail panel: blockchain field rows ---- */
 #panel-details-section { display: flex; flex-direction: column; gap: .5rem; }
@@ -327,3 +317,19 @@ body { overflow: auto !important; }
 @media (max-width: 768px) {
   #body { height: 62vh; }
 }
+
+/* Balance-check spinner — the rotating wheel shown in the Balance / Received / TX
+   boxes (and reused during any lookup) while an explorer request is in flight,
+   matching the Public Key Toolkit / TXID→R,S,Z tools. Self-contained: own keyframes
+   + explicit tint so the global .fa-icon filters never recolour it. */
+.aa-spin {
+  display: inline-block;
+  vertical-align: -2px;
+  animation: aa-spin .8s linear infinite;
+  filter: invert(48%);                 /* black source SVG -> muted grey */
+}
+[data-bs-theme="dark"] .aa-spin { filter: invert(78%); }
+@keyframes aa-spin { to { transform: rotate(360deg); } }
+
+/* Funded balance amounts use the private-keys balance green (#22c55e). */
+.stat-value.has-balance { color: #22c55e !important; font-weight: 700; }

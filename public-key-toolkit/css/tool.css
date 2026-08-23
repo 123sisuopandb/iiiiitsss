@@ -8,6 +8,12 @@
    are hard-coded, exactly as elsewhere on CryptographyTube.
    ============================================================ */
 
+/* Page intro paragraph under the H1 — match the Address Analysis intro size
+   (.875rem / 14px) instead of the Bootstrap 1rem (16px) default. Line-height
+   stays 1.5 (→ 21px), same as that page. Only this page loads tool.css, so
+   the header selector cannot leak elsewhere. */
+header.text-center p.text-muted { font-size: .875rem; }
+
 .tool-section {
     background: var(--cgt-card-bg);
     border: 1px solid var(--cgt-border);
@@ -238,8 +244,23 @@
     color: var(--cgt-text-muted);
 }
 .pkt-addr-stats b { color: var(--cgt-text); font-weight: 600; }
-.pkt-addr-stats.pkt-has-funds b { color: #00b894; }
+.pkt-addr-stats.pkt-has-funds b { color: #22c55e; }
 .pkt-addr-stats.pkt-bal-na { font-style: italic; opacity: .85; }
+
+/* Balance-check spinner — the rotating wheel shown while an explorer request is in
+   flight (same idea as the private-keys balance column). Self-contained: own
+   keyframes + explicit tint so the global .fa-icon filters never recolour it. */
+.pkt-spin {
+    display: inline-block;
+    vertical-align: -2px;
+    animation: pkt-spin .8s linear infinite;
+    filter: invert(48%);                 /* black source SVG -> muted grey */
+}
+[data-bs-theme="dark"] .pkt-spin { filter: invert(78%); }
+@keyframes pkt-spin { to { transform: rotate(360deg); } }
+
+/* Funded top-summary amounts use the private-keys balance green (#22c55e). */
+.stat-value.has-balance { color: #22c55e !important; font-weight: 700; }
 @media (max-width: 768px) {
     /* Stack label over value: on a narrow flex row a 100%-wide label collapses
        the mono value column to ~0px, so break-all puts one character per line.
