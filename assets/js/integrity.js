@@ -4,26 +4,29 @@
  * bitaddress.org ships ONE self-contained file whose SHA-256 is baked into the filename,
  * so anyone can verify it offline. We can't put the hash in 1,533 filenames (it would
  * break clean URLs + internal links + SEO), so instead every page fingerprints ITSELF at
- * load: it fetches its own served HTML, computes the SHA-256, shows it in the address bar
- * as "#SHA256-<64hex>", and in a small copyable badge. Anyone can confirm it independently:
+ * load: it fetches its own served HTML, computes the SHA-256, and shows it in the address
+ * bar as "#SHA256-<64hex>". Anyone can confirm it independently:
  *
- *     sha256sum thepage.html                 ==  the value shown here
+ *     sha256sum thepage.html                  ==  the value shown here
  *     curl --compressed -s <url> | sha256sum  ==  the value shown here
  *
  * HONEST SCOPE — this is a *fingerprint*, not an authenticity guarantee. It catches
  * accidental corruption and in-transit HTML rewriting, and lets anyone who already holds
  * an out-of-band expected hash compare at a glance. It does NOT prove the server wasn't
  * compromised: the page hashes itself with a script from the same origin, and the external
- * /assets/js/*.js it loads are not covered. So the badge says "SHA-256", never
- * "verified/secure", and shows no green authenticity tick.
+ * /assets/js/*.js it loads are not covered. So the fragment is labeled "#SHA256-", never
+ * "verified/secure".
+ *
+ * DISPLAY IS ADDRESS-BAR ONLY — no on-page badge (removed by request, to keep the UI
+ * clean). The hex is also exposed as window.CGT_PAGE_SHA256 for the console / other scripts.
  *
  * Design (mirrors clean-urls.js): IIFE, 'use strict', every step wrapped so a failure can
- * never block the page. Runs on window 'load' (never competes with rendering). Uses
- * history.replaceState (never assigns location.hash) so it fires no hashchange and causes
- * no scroll, and only writes the fragment when none — or a prior #SHA256- of ours — is
- * present, so a real anchor is never clobbered. Hashes location.pathname WITHOUT the query
- * (the static host returns the same bytes for any ?query, and offline verification targets
- * the .html file), which also lets force-cache reuse the navigation response.
+ * never block the page. Uses history.replaceState (never assigns location.hash) so it fires
+ * no hashchange and causes no scroll, and only writes the fragment when none — or a prior
+ * #SHA256- of ours — is present, so a real anchor is never clobbered. Hashes
+ * location.pathname WITHOUT the query (the static host returns the same bytes for any
+ * ?query, and offline verification targets the .html file), which also lets force-cache
+ * reuse the navigation response.
  */
 (function () {
     'use strict';
@@ -51,81 +54,6 @@
         } catch (e) {}
     }
 
-    // A small, theme-neutral, dismissible pill. Click copies the full 64-hex.
-    function showBadge(hex) {
-        try {
-            if (document.getElementById('cgt-sha256-badge')) return;
-            var short = hex.slice(0, 8);
-
-            var el = document.createElement('div');
-            el.id = 'cgt-sha256-badge';
-            el.setAttribute('role', 'button');
-            el.setAttribute('tabindex', '0');
-            el.title = "SHA-256 fingerprint of this page's HTML\n" + hex +
-                       "\n\nClick to copy. Verify offline:  sha256sum <file>";
-            el.style.cssText = [
-                'position:fixed', 'right:10px', 'bottom:10px', 'z-index:2147483000',
-                'max-width:72vw', 'display:flex', 'align-items:center', 'gap:6px',
-                'padding:5px 10px', 'border-radius:999px',
-                'font:600 11px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
-                'color:#e9e9ee', 'background:rgba(20,22,28,.82)',
-                'border:1px solid rgba(255,255,255,.16)',
-                'box-shadow:0 2px 10px rgba(0,0,0,.35)',
-                'cursor:pointer', 'user-select:none',
-                'backdrop-filter:blur(4px)', '-webkit-backdrop-filter:blur(4px)'
-            ].join(';');
-
-            // Deliberately "SHA-256 <short>", not a lock/"verified" — this is a fingerprint.
-            var label = document.createElement('span');
-            label.textContent = 'SHA-256 ' + short + '…';
-            el.appendChild(label);
-
-            var close = document.createElement('span');
-            close.textContent = '×';                 // ×
-            close.setAttribute('aria-label', 'Hide');
-            close.style.cssText = 'margin-left:2px;opacity:.6;font-weight:700;padding:0 3px';
-            el.appendChild(close);
-
-            function flash(msg) {
-                var old = label.textContent;
-                label.textContent = msg;
-                setTimeout(function () { label.textContent = old; }, 1200);
-            }
-            function copy() {
-                try {
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                        navigator.clipboard.writeText(hex).then(
-                            function () { flash('✓ copied'); }, function () {});
-                        return;
-                    }
-                } catch (e) {}
-                try {                                       // legacy fallback
-                    var ta = document.createElement('textarea');
-                    ta.value = hex;
-                    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
-                    document.body.appendChild(ta);
-                    ta.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(ta);
-                    flash('✓ copied');
-                } catch (e) {}
-            }
-
-            el.addEventListener('click', function (ev) {
-                if (ev.target === close) {
-                    if (el.parentNode) el.parentNode.removeChild(el);
-                    return;
-                }
-                copy();
-            });
-            el.addEventListener('keydown', function (ev) {
-                if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); copy(); }
-            });
-
-            (document.body || document.documentElement).appendChild(el);
-        } catch (e) {}
-    }
-
     function go() {
         try {
             // Fetch the served file for THIS path (no query). A non-2xx (e.g. a GitHub
@@ -142,16 +70,13 @@
                     var hex = toHex(buf);
                     window.CGT_PAGE_SHA256 = hex;           // exposed for console / other scripts
                     showFragment(hex);
-                    showBadge(hex);
                 })
                 .catch(function () {});                     // never block the page
         } catch (e) {}
     }
 
-    // This script is injected `defer`, so the DOM is fully parsed when it runs — no
-    // need to wait for the 'load' event (which would stall the fingerprint on heavy
-    // pages until every image/worker/WASM subresource finished). Run as soon as the DOM
-    // is ready; the fetch + digest are async and off the main thread either way.
+    // This script is injected `defer`, so the DOM is fully parsed when it runs. Run as soon
+    // as the DOM is ready; the fetch + digest are async and off the main thread either way.
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go);
     else go();
 })();
