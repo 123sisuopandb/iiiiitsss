@@ -1,0 +1,314 @@
+/* ============================================================
+   TXID -> R,S,Z + Private Key Recovery — tool styles
+   Fully theme-driven: the result table mirrors the site's
+   .keys-table / .keys-header look (see /private-keys/bitcoin)
+   so it is native in BOTH light and dark mode. All colours come
+   from the --cgt-* variables; only the shared brand accents
+   (Bitcoin orange #f7931a, alert pink #e0245e, tool teal #00b894)
+   are hard-coded, exactly as elsewhere on CryptographyTube.
+   ============================================================ */
+
+.tool-section {
+    background: var(--cgt-card-bg);
+    border: 1px solid var(--cgt-border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 3px var(--cgt-shadow);
+}
+.tool-section h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 .85rem;
+    color: var(--cgt-text);
+}
+
+/* Input + button row */
+.tool-input-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin-bottom: .85rem;
+}
+.tool-input-row .form-control {
+    flex: 1 1 260px;
+    font-family: 'SF Mono', Consolas, Monaco, monospace;
+    font-size: .875rem;
+}
+.tool-input-row .btn { white-space: nowrap; }
+
+/* ---- Chain selector + search bar — same look/behaviour as the Public Key
+        Toolkit / Address Analysis. The selected-chain accent (a clean 2px border
+        in the chain's colour) and the hover tint both come from the global
+        .chain-tab styling in style.min.css; here we ONLY center the controls and
+        set the row spacing, so the active-tab border is identical to those sibling
+        tools (no extra inset ring / weight / dimming that made it look thicker). ---- */
+#txr-controls { max-width: 760px; margin-left: auto; margin-right: auto; }
+#txr-chain-tabs { margin-bottom: 1rem; }
+
+/* "Transactions to fetch" — free-entry number input (any count) */
+#txr-txlimit-wrap { color: var(--cgt-text-muted); }
+#txr-tx-limit {
+    width: auto;
+    min-width: 118px;
+    max-width: 170px;
+    font-family: 'SF Mono', Consolas, Monaco, monospace;
+}
+
+/* ---- Output panel — a themed card, like the site's .keys-table ---- */
+.tool-output {
+    background: var(--cgt-card-bg);
+    color: var(--cgt-text);
+    border: 1px solid var(--cgt-border);
+    border-radius: 8px;
+    box-shadow: 0 1px 3px var(--cgt-shadow);
+    overflow: hidden;
+    min-height: 120px;
+    font-size: .8rem;
+    line-height: 1.55;
+}
+.tool-output pre {
+    margin: 0;
+    padding: .9rem 1rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: 'SF Mono', Consolas, Monaco, monospace;
+    color: var(--cgt-text-muted);
+    background: transparent;
+}
+
+/* Brand strip emitted by the engine */
+.result-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .5rem;
+    padding: .7rem 1rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--cgt-text);
+    background: linear-gradient(135deg, var(--cgt-bg-tertiary) 0, var(--cgt-card-bg) 100%);
+    border-bottom: 1px solid var(--cgt-border);
+    box-shadow: inset 3px 0 0 #f7931a;
+}
+.result-header .tool-tag {
+    font-weight: 500;
+    font-size: .72rem;
+    letter-spacing: .02em;
+    color: var(--cgt-text-muted);
+    text-transform: uppercase;
+}
+.download-tools { display: flex; gap: .5rem; padding: .7rem 1rem 0; }
+.btn-small {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    background: transparent;
+    border: 1px solid var(--cgt-border);
+    color: var(--cgt-text);
+    border-radius: 6px;
+    padding: .3rem .6rem;
+    font-size: .72rem;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s;
+}
+.btn-small:hover {
+    border-color: var(--cgt-primary);
+    color: var(--cgt-primary);
+    background: rgba(var(--cgt-primary-rgb), .08);
+}
+.btn-small img { filter: none; }
+[data-bs-theme="dark"] .btn-small img { filter: invert(1); }
+
+/* ---- Status / empty / error ---- */
+.rsz-status { padding: .9rem 1rem; color: var(--cgt-text-muted); font-size: .85rem; }
+.rsz-error {
+    display: flex; align-items: center; gap: .4rem;
+    margin: .75rem 1rem; padding: .6rem .8rem;
+    border: 1px solid rgba(224, 36, 94, .4);
+    border-radius: 6px;
+    background: rgba(224, 36, 94, .08);
+    color: #e0245e;
+    font-size: .8rem;
+    word-break: break-word;
+}
+[data-bs-theme="dark"] .rsz-error img { filter: invert(1); }
+
+/* ---- Summary chips ---- */
+.rsz-summary { display: flex; flex-wrap: wrap; gap: .5rem; padding: .8rem 1rem .25rem; }
+.rsz-chip {
+    font-size: .68rem; font-weight: 600;
+    padding: .22rem .6rem; border-radius: 999px;
+    background: var(--cgt-bg-tertiary); color: var(--cgt-text-muted);
+    border: 1px solid var(--cgt-border);
+    text-transform: uppercase; letter-spacing: .03em;
+}
+.rsz-chip-ok { color: #00b894; border-color: rgba(0, 184, 148, .45); }
+.rsz-chip-danger { color: #e0245e; border-color: rgba(224, 36, 94, .45); }
+
+/* ---- Bit-leak analysis section (worker-driven verdict at the top) ---- */
+.rsz-leak-box { border-bottom: 1px solid var(--cgt-border); }
+.rsz-leak-box:empty { display: none; border-bottom: 0; }
+.rsz-leak-note {
+    display: flex; align-items: center; gap: .45rem;
+    margin: .75rem 1rem; padding: .6rem .8rem;
+    border: 1px solid var(--cgt-border);
+    border-left: 3px solid var(--cgt-text-muted);
+    border-radius: 6px;
+    background: var(--cgt-bg-tertiary);
+    color: var(--cgt-text-muted);
+    font-size: .8rem; line-height: 1.5;
+}
+.rsz-leak-note.rsz-leak-ok {
+    border-color: rgba(0, 184, 148, .35);
+    border-left-color: #00b894;
+    background: rgba(0, 184, 148, .06);
+    color: var(--cgt-text);
+}
+[data-bs-theme="dark"] .rsz-leak-note img { filter: invert(38%) sepia(64%) saturate(3200%) hue-rotate(320deg); }
+
+/* Per-transaction leak detail — recovered nonce K + exact leaked-bit report,
+   injected into each leaky row. Spans the full width under the 3 columns. */
+.rsz-leak-detail {
+    grid-column: 1 / -1;
+    margin-top: .55rem;
+    padding: .55rem .7rem;
+    border: 1px dashed rgba(224, 36, 94, .4);
+    border-radius: 6px;
+    background: rgba(224, 36, 94, .05);
+}
+.rsz-leak-detail:empty { display: none; }
+.rsz-leak-badge {
+    display: inline-block;
+    font-size: .6rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .04em;
+    color: #e0245e;
+    border: 1px solid rgba(224, 36, 94, .5);
+    border-radius: 999px;
+    padding: .12rem .55rem; margin-bottom: .4rem;
+}
+.rsz-leak-badge-muted { color: var(--cgt-text-muted); border-color: var(--cgt-border); }
+.rsz-leak-detail .rsz-line { margin-bottom: 0; }
+.rsz-val.rsz-nonce { color: #f7931a; }
+.rsz-leak-bits { font-size: .68rem; color: var(--cgt-text-muted); margin-top: .35rem; line-height: 1.5; }
+.rsz-leak-bits strong { color: var(--cgt-text); }
+
+/* ---- Recovered private key box ---- */
+.rsz-vuln-box {
+    margin: .75rem 1rem;
+    padding: .7rem .85rem;
+    border: 1px solid rgba(224, 36, 94, .45);
+    border-left: 3px solid #e0245e;
+    border-radius: 8px;
+    background: rgba(224, 36, 94, .06);
+}
+.rsz-vuln-title {
+    display: flex; align-items: center; gap: .4rem;
+    font-weight: 700; font-size: .8rem; color: #e0245e; margin-bottom: .45rem;
+}
+[data-bs-theme="dark"] .rsz-vuln-title img { filter: invert(38%) sepia(64%) saturate(3200%) hue-rotate(320deg); }
+.rsz-vuln-key { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+
+/* Recovered key highlight (only the recovered key uses .private-key here) */
+.private-key {
+    color: #f7931a;
+    font-weight: 700;
+    word-break: break-all;
+    background: rgba(247, 147, 26, .12);
+    border-radius: 4px;
+    padding: 0 .3rem;
+}
+
+/* ---- Results table (same grid model as .keys-table, own classes to
+        avoid the global !important grid on .key-row) ---- */
+.rsz-thead, .rsz-row {
+    display: grid;
+    grid-template-columns: minmax(150px, 1fr) minmax(230px, 1.7fr) minmax(200px, 1.4fr);
+    gap: 1rem;
+    align-items: start;
+}
+.rsz-thead {
+    padding: .7rem 1rem;
+    margin-top: .75rem;
+    background: linear-gradient(135deg, var(--cgt-bg-tertiary) 0, var(--cgt-card-bg) 100%);
+    border-top: 1px solid var(--cgt-border);
+    border-bottom: 2px solid var(--cgt-border);
+    font-size: .7rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .03em;
+    color: var(--cgt-text-muted);
+}
+.rsz-thead img { vertical-align: -2px; opacity: .75; }
+[data-bs-theme="dark"] .rsz-thead img { filter: invert(1); }
+
+.rsz-row {
+    padding: .7rem 1rem;
+    border-bottom: 1px solid var(--cgt-border);
+    font-size: .78rem;
+}
+.rsz-row:last-child { border-bottom: 0; }
+.rsz-row:hover { background: rgba(var(--cgt-primary-rgb), .04); }
+.rsz-row-vuln { background: rgba(224, 36, 94, .06); }
+.rsz-row-vuln:hover { background: rgba(224, 36, 94, .1); }
+
+.rsz-col { min-width: 0; }
+.rsz-line { display: flex; align-items: baseline; gap: .4rem; margin-bottom: .3rem; }
+.rsz-line:last-child { margin-bottom: 0; }
+.rsz-tag {
+    flex: 0 0 auto; width: 2.4em;
+    font-size: .6rem; font-weight: 700;
+    color: var(--cgt-text-muted); text-transform: uppercase;
+}
+.key-label {
+    display: block;
+    color: var(--cgt-text-muted);
+    font-size: .6rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .03em;
+    margin-bottom: .2rem;
+}
+.rsz-val {
+    font-family: 'SF Mono', Consolas, Monaco, monospace;
+    word-break: break-all;
+    color: var(--cgt-text);
+    min-width: 0;
+}
+.rsz-txid { color: var(--cgt-primary); }
+.rsz-addr-val { color: var(--cgt-key-address); }
+
+/* Copy button (visual clone of the site's .copy-btn, own class so it
+   doesn't hook the global copy handler) */
+.rsz-copy {
+    flex: 0 0 auto;
+    padding: .1rem .3rem;
+    background: 0 0; border: none; border-radius: 4px;
+    color: var(--cgt-text-muted); cursor: pointer;
+    opacity: .45; transition: opacity .15s, color .15s;
+}
+.rsz-row:hover .rsz-copy, .rsz-vuln-key .rsz-copy, .rsz-copy:hover { opacity: 1; }
+.rsz-copy:hover { color: var(--cgt-primary); }
+.rsz-copy.copied { color: #00b894; opacity: 1; }
+[data-bs-theme="dark"] .rsz-copy img { filter: invert(1); }
+
+/* ---- Mobile: stack the three columns ---- */
+@media (max-width: 768px) {
+    .rsz-thead { display: none; }
+    .rsz-row { grid-template-columns: 1fr; gap: .7rem; }
+    .rsz-col-rsz, .rsz-col-addr { padding-top: .1rem; }
+}
+
+/* Balance-check spinner — the rotating wheel shown in the Balance / Received / TX
+   boxes (and the status line) while an explorer request is in flight, matching the
+   Public Key Toolkit / private-keys pages. Self-contained: own keyframes + explicit
+   tint so the global .fa-icon filters never recolour it. */
+.txr-spin {
+    display: inline-block;
+    vertical-align: -2px;
+    animation: txr-spin .8s linear infinite;
+    filter: invert(48%);                 /* black source SVG -> muted grey */
+}
+[data-bs-theme="dark"] .txr-spin { filter: invert(78%); }
+@keyframes txr-spin { to { transform: rotate(360deg); } }
+
+/* Funded balance amounts use the private-keys balance green (#22c55e). */
+.stat-value.has-balance { color: #22c55e !important; font-weight: 700; }

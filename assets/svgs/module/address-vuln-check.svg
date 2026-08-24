@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Security shield (address vulnerability check) -->
+  <path d="M156 120 H356 A24 24 0 0 1 380 144 V280 C380 344 328 396 256 424 C184 396 132 344 132 280 V144 A24 24 0 0 1 156 120 Z"
+        fill="#FDE3EA" stroke="#e0245e" stroke-width="18" stroke-linejoin="round"/>
+
+  <!-- Magnifier lens (clear) -->
+  <circle cx="232" cy="248" r="74" fill="#ffffff"/>
+
+  <!-- Recovered private key inside the lens -->
+  <g fill="#f7931a">
+    <circle cx="206" cy="248" r="21"/>
+    <circle cx="206" cy="248" r="8" fill="#ffffff"/>
+    <rect x="222" y="242" width="50" height="12" rx="6"/>
+    <rect x="250" y="254" width="8" height="14" rx="3"/>
+    <rect x="262" y="254" width="8" height="20" rx="3"/>
+  </g>
+
+  <!-- Magnifier handle -->
+  <line x1="289" y1="305" x2="340" y2="356" stroke="#e0245e" stroke-width="28" stroke-linecap="round"/>
+
+  <!-- Magnifier ring -->
+  <circle cx="232" cy="248" r="74" fill="none" stroke="#e0245e" stroke-width="26"/>
+</svg>
